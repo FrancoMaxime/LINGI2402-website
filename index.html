@@ -1,0 +1,136 @@
+<!doctype html>
+<title>Summary of my contribution on the AKUINO project</title>
+<link rel="stylesheet" href="static/style.css">
+<h1>Summary of my contribution on the AKUINO project</h1>
+<nav>
+    <ul>
+        <li><a href="#akuino">Goal of Akuino Project</a>
+        <li><a href="#loranne">LoRanne Contribution</a>
+        <li><a href="#arduino-fifo">ARDUINO-FIFO Contribution</a>
+        <li><a href="#jbcdic">JBCDIC Contribution</a>
+        <li><a href="#elsa">ELSA Contribution</a>
+        <li><a href="#akuino-system">Akuino System Example</a>
+    </ul>
+</nav>
+<section class="content">
+    <header>
+    </header>
+        <article class="post" id="akuino">
+            <header>
+                <div>
+                    <h1>Goal of Akuino Project.</h1>
+                </div>
+                <a class="action" href="https://www.akuino.net/">AKUINO website</a>
+            </header>
+            <p class="body">The goal of this project is to provide a traceability software for small industries, start-up or producer. The software can be put inside an AKUINO main station who will host the project ELSA.<br >
+            The project ELSA is the software who provide the traceabality. It can send alarm to the users if some values are outside the expected values by mail, sms, ... .<br >
+            To avoid that too much sensors are connected directly on ELSA by 1-WIRE, a new project has emerged called LoRanne. LoRanne is an open hardware and software allowing to connect many sensors on a little Arduino chip by 1-wire and I2C and it sends the data back to the main station by a LoRa signal.<br >
+            To comply with the laws on LoRa signal, an arduino library allowing to compress the payload of the packet named JBCDIC were created. <br >
+            Finally, as making malloc in IoT is dangerous, a FIFO buffer was created to contain the different packet that are not already acknowledged by the main station. This library is an upgrade on an existing project by adding a feature allowing the FIFO to work with strings.
+            </p>
+        </article>
+        <hr>
+        
+        <article class="post"  id="loranne">
+            <header>
+                <div>
+                    <h1>LoRanne Contribution.</h1>
+                </div>
+                <a class="action" href="https://github.com/AKUINO/LoRanne">LoRanne Github</a>
+            </header>
+            <p class="body">The LoRanne project was first to create the hardware, in fact the hardware contains a battery, a LoRa chip, differents sensors, a file system (for the receiver version). So the first version was to create the packaging for the LoRanne hardware. <br>
+            Then, a first version of the transmitter and receiver was made, without compression or FIFO. The transmitter sent the data without looking for an acknolegment and the receiver read the data and send it back to the ELSA system. <br >
+            The finale step was to add the JBCDIC library for the payload compression, and the Arduino-FIFO library for messages waiting acknolegment. Obviously, the Arduino-FIFO contains the compress messages.
+            </p>
+        </article>
+        <hr>
+        
+        <article class="post"  id="arduino-fifo">
+            <header>
+                <div>
+                    <h1>Arduino FIFO Contribution.</h1>
+                </div>
+                <a class="action" href="https://github.com/AKUINO/Arduino-FIFO">Arduino-FIFO Github</a>
+            </header>
+            <p class="body">As said in the introduction, the Arduino-FIFO is a <a href="https://github.com/deisterhold/Arduino-FIFO">fork</a> of an existing project. A feature allowing to push, pop and peek string was added to the project, because the LoRanne sends  string messages and not characters one by one.<br >
+            The FIFO works with an array of uint8_t, so first the size of the string is push to the array, and then we push the integer's value of each characters of the string.<br>
+            When someone wants to recover a string, the library reads the first element of the FIFO. This element matches with the size of the string that is inside the next case of the array. So the library will read as much characters as the size peeked before.<br >
+            So these methods where added :
+                <ul>
+                    <li>bool pushBuffer(const uint8_t* src, int src_size)</li>
+                    <li>int peekBuffer(uint8_t* dest, int dest_size)</li>
+                    <li>int popBuffer(uint8_t* dest, int dest_size)</li>
+                </ul> 
+            And finaly, a possibility to redefine the FIFO's size in an other file was added, allowing users to use the size they want for the FIFO.
+            </p>
+        </article>
+        <hr>
+        
+        <article class="post"  id="jbcdic">
+            <header>
+                <div>
+                    <h1>JBCDIC Contribution.</h1>
+                </div>
+                <a class="action" href="https://github.com/AKUINO/JBCDIC ">JBCDIC Github</a>
+            </header>
+            <p class="body">As the use of the LoRa frequencies must respect <a href="https://www.disk91.com/2017/technology/internet-of-things-technology/all-what-you-need-to-know-about-regulation-on-rf-868mhz-for-lpwan/">some rules</a> like the day uses, the size of payload, ... The compression of data were important to establish. <br >
+            The JBCDIC is based on the <a href="https://en.wikipedia.org/wiki/BCD_(character_encoding)#IBM_704_BCD_code">BCDIC</a>, it's an other representation for characters which will not be encoded in 8 bits but between 4 and 12 bits. <br >
+            To encoding, the algorithm will check the position of the character inside the encoding's tables. 
+                <ul>
+                    <li>If the character is not inside the current table, the algorithm output 4 bit containing the value of the other table and change the current table.</li>
+                    <li>If the character is not inside the current line, the algorithm output 4 bit containing the value of the new line and change the current line.</li>
+                    <li>Finaly, the algorithm output the indice of the character in the table.</li>
+                </ul>
+             To decoding, the algorithm will read the buffer 4 bits by 4 bits, and apply the action that is contained if the current table.
+            </p>
+        </article>
+        <hr>
+        
+        <article class="post"  id="elsa">
+            <header>
+                <div>
+                    <h1>ELSA Contribution.</h1>
+                </div>
+                <a class="action" href="https://github.com/AKUINO/ELSA/">ELSA Github</a>
+            </header>
+            <p class="body">The ELSA contribution was to analyse the software in a security point of vue. Some vulnerabilities were found by using the techniques seen in <a href="https://uclouvain.be/cours-2019-lingi2347"> Computer system security</a> and corrected after.<br>
+            The 4 vulnerabilities found are the following:
+            <ul>
+                <li>There was a possibility to steal the session of an active user if you stole the cookie and reused it.</li>
+                <li>There was a possibility to create HTML request put it in an other website, and if an active user visit the other website, the request was executed.</li>
+                <li>Some URL were not correctly protected and there was a possibility to export important information from the database (like hashed password).</li>
+                <li>Some sensors need a mathematical function to get the correct value, users were invited to insert the formula inside a field and python code was authorized. Now, the system checks before executing the formula is there is no malicious code inside the formula.</li>
+            </ul>
+            </p>
+        </article>
+        <hr>
+        
+        <article class="post"  id="akuino-system">
+            <header>
+                <div>
+                    <h1>Akuino System Example</h1>
+                </div>
+            </header>
+            <p class="body">Here is a picture of my AKUINO system that i use to work on the different AKUINO project.<br>
+             <img src="static/akuino.png" alt="AKUINO System" width="900"> 
+            <ol type="A">
+                  <li>This is some sensors (humidity, temperature, CO2 concentration) connected in 1-wire with the AKUINO-system</li>
+                  <li>This is the AKUINO-System. It's a Raspberry pi, with an antenna to listen radio wave. It hosts too the ELSA software. It contains too a LoRanne receiver to communicate with all LoRanne stations and to send the data to the ELSA software.</li>
+                  <li>This is a little LoRanne transmitter and a radio sensor.</li>
+                  <li>In this version, the AKUINO system doesn't have an embedded touchscreen, so this is the screen and the keyboard.</li>
+            </ol> 
+            </p>
+        </article>
+        <hr>
+        
+        <article class="post"  id="flask">
+            <header>
+                <div>
+                    <h1>Web template</h1>
+                </div>
+            </header>
+            <p class="body">The current template comes from the <a href="https://flask.palletsprojects.com/en/1.1.x/tutorial/">flask tutorial</a> and was not made by me.
+            </p>
+        </article>
+        <hr>
+</section>
